@@ -21,6 +21,7 @@ import com.oliva.chatappclone.ui.SingleChatScreen
 import com.oliva.chatappclone.ui.SingleStatusScreen
 import com.oliva.chatappclone.ui.StatusListScreen
 import com.oliva.chatappclone.ui.theme.ChatAppCloneTheme
+import dagger.hilt.android.AndroidEntryPoint
 
 sealed class DestinationScreen(val route: String) {
     object Signup : DestinationScreen("signup")
@@ -36,6 +37,7 @@ sealed class DestinationScreen(val route: String) {
     }
 }
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +59,7 @@ class MainActivity : ComponentActivity() {
 fun ChatAppNavigation() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = DestinationScreen.Signup.route) {
+    NavHost(navController = navController, startDestination = DestinationScreen.Profile.route) {
         composable(DestinationScreen.Signup.route) {
             SignupScreen()
         }
@@ -65,16 +67,16 @@ fun ChatAppNavigation() {
             LoginScreen()
         }
         composable(DestinationScreen.Profile.route) {
-            ProfileScreen()
+            ProfileScreen(navController = navController)
         }
         composable(DestinationScreen.StatusList.route) {
-            StatusListScreen()
+            StatusListScreen(navController = navController)
         }
         composable(DestinationScreen.SingleStatus.route) {
             SingleStatusScreen(statusId = "123")
         }
         composable(DestinationScreen.ChatList.route) {
-            ChatListScreen()
+            ChatListScreen(navController = navController)
         }
         composable(DestinationScreen.SingleChat.route) {
             SingleChatScreen(chatId = "123")

@@ -10,15 +10,15 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun StatusListScreen(navController: NavController) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = "Profile Screen")
+        Text(text = "Status List Screen")
         BottomNavigationMenu(
-            selectedItem = BottomNavigationItem.PROFILE,
+            selectedItem = BottomNavigationItem.STATUSLIST,
             navController = navController
         )
     }
