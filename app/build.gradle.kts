@@ -2,10 +2,10 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 
-
-    id("dagger.hilt.android.plugin")
     id("com.google.gms.google-services")
+    id("com.google.dagger.hilt.android")
     id("kotlin-kapt")
+
 }
 
 android {
@@ -37,6 +37,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+//        sourceCompatibility = JavaVersion.VERSION_1_8
+//        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
         jvmTarget = "17"
@@ -66,22 +68,23 @@ dependencies {
     implementation("androidx.compose.material3:material3")
 
     implementation("androidx.navigation:navigation-compose:2.5.3")
-
-    implementation("com.google.firebase:firebase-auth:22.0.0")
-    implementation(platform("com.google.firebase:firebase-bom:32.0.0"))
-    implementation("com.google.firebase:firebase-auth-ktx")
-//    implementation("com.google.firebase:firebase-firestore-ktx")
-//    implementation("com.google.firebase:firebase-storage-ktx")
-
-    implementation("com.google.dagger:hilt-android:2.42")
-    implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
-    implementation("com.google.firebase:firebase-firestore:24.6.0")
-//    implementation("com.google.firebase:firebase-storage:21.0.0")
-    kapt("com.google.dagger:hilt-android-compiler:2.42")
-
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     implementation("io.coil-kt:coil-compose:1.3.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.3.9") //correct
 
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    // Firebase dependencies
+    // Import the Firebase BoM
+    // When using the BoM, you don't specify versions in Firebase library dependencies
+    implementation(platform("com.google.firebase:firebase-bom:33.1.1"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-storage")
+    
+    // Hilt dependencies
+    implementation("com.google.dagger:hilt-android:2.50")
+    kapt("com.google.dagger:hilt-android-compiler:2.50")
+
+//    kapt("org.jetbrains.kotlinx:kotlinx-metadata-jvm:0.4.2")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
@@ -90,4 +93,8 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+kapt {
+    correctErrorTypes = true
 }
