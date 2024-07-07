@@ -1,13 +1,18 @@
 package com.oliva.chatappclone
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.storage.FirebaseStorage
+import com.oliva.chatappclone.data.COLLECTION_USER
 import com.oliva.chatappclone.data.Event
+import com.oliva.chatappclone.data.UserData
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -19,8 +24,135 @@ class CAViewModel @Inject constructor(
 
     val inProgress = mutableStateOf(false)
     val popupNotification = mutableStateOf<Event<String>?>(null)
+    val signedIn = mutableStateOf(false)
+    val userData = mutableStateOf<UserData?>(null)
 
     init {
+//        onLogout()
+        val currentUser = auth.currentUser
+        signedIn.value = currentUser != null
+        currentUser?.uid?.let { uid ->
+            getUserData(uid)
+        }
+    }
+
+    fun onSignup(name: String, number: String, email: String, password: String) {
+        if (name.isEmpty() || number.isEmpty() || email.isEmpty() || password.isEmpty()) {
+            handleException(customeMessage = "Please fill in all fields")
+            return
+        }
+        inProgress.value = true
+        db.collection(COLLECTION_USER).whereEqualTo("number", number)
+            .get()
+            .addOnSuccessListener {
+                if (it.isEmpty)
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                signedIn.value = true
+                                // create user profile
+                                createOrUpdateProfile(name = name, number = number)
+                            } else {
+                                handleException(task.exception, "Signup failed")
+                            }
+                        }
+                else
+                    handleException(customeMessage = "number already exists")
+
+                inProgress.value = false
+            }
+            .addOnFailureListener {
+                handleException(it)
+            }
+    }
+
+    fun onLogin(email: String, pass: String) {
+        if (email.isEmpty() || pass.isEmpty()) {
+            handleException(customeMessage = "Please fill in all fields")
+            return
+        }
+        inProgress.value = true
+        auth.signInWithEmailAndPassword(email, pass)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    signedIn.value = true
+                    inProgress.value = false
+                    auth.currentUser?.uid?.let {
+                        getUserData(it)
+                    }
+                } else {
+                    handleException(task.exception, "Login failed")
+                }
+            }
+            .addOnFailureListener {
+                handleException(it, "Login failed")
+            }
+    }
+
+    private fun createOrUpdateProfile(
+        name: String? = null,
+        number: String? = null,
+        imageUrl: String? = null
+    ) {
+        val uid = auth.currentUser?.uid
+        val userData = UserData(
+            userId = uid,
+            name = name ?: userData.value?.name,
+            number = number ?: userData.value?.number,
+            imageUrl = imageUrl ?: userData.value?.imageUrl
+        )
+
+        uid?.let { uid ->
+            inProgress.value = true
+            db.collection(COLLECTION_USER).document(uid)
+                .get()
+                .addOnSuccessListener {
+                    if (it.exists()) {
+                        // Update user
+                        it.reference.update(userData.toMap())
+                            .addOnSuccessListener {
+                                inProgress.value = false
+                            }
+                            .addOnFailureListener {
+                                handleException(it, "Cannot update user")
+                            }
+                    } else {
+                        // Create user
+                        db.collection(COLLECTION_USER).document(uid).set(userData)
+                        inProgress.value = false
+                        getUserData(uid)
+                    }
+                }
+                .addOnFailureListener {
+                    handleException(it, "Cannot retrieve user")
+                }
+        }
+    }
+
+    fun updateProfileData(name: String, number: String) {
+        createOrUpdateProfile(name = name, number = number)
+    }
+
+    private fun getUserData(uid: String) {
+        inProgress.value = true
+        db.collection(COLLECTION_USER).document(uid)
+            .addSnapshotListener { value, error ->
+                if (error != null)
+                    handleException(error, "Cannot retrieve user data")
+                if (value != null) {
+                    val user = value.toObject<UserData>()
+                    userData.value = user
+                    inProgress.value = false
+                }
+
+            }
+    }
+
+    fun onLogout() {
+        auth.signOut()
+        signedIn.value = false
+        userData.value = null
+        popupNotification.value = Event("Logged out")
     }
 
     private fun handleException(exception: Exception? = null, customeMessage: String = "") {
@@ -30,5 +162,30 @@ class CAViewModel @Inject constructor(
         val message = if (customeMessage.isEmpty()) errorMsg else "$customeMessage: $errorMsg"
         popupNotification.value = Event(message)
         inProgress.value = false
+    }
+
+    private fun uploadImage(uri: Uri, onSuccess: (Uri) -> Unit) {
+        inProgress.value = true
+
+        val storageRef = storage.reference
+        val uuid = UUID.randomUUID()
+        val imageRef = storageRef.child("image/$uuid")
+        val uploadTask = imageRef.putFile(uri)
+
+        uploadTask
+            .addOnSuccessListener {
+                val result = it.metadata?.reference?.downloadUrl
+                result?.addOnSuccessListener(onSuccess)
+                inProgress.value = false
+            }
+            .addOnFailureListener {
+                handleException(it)
+            }
+    }
+
+    fun uploadProfileImage(uri: Uri) {
+        uploadImage(uri) {
+            createOrUpdateProfile(imageUrl = it.toString())
+        }
     }
 }

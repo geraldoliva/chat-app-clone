@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.oliva.chatappclone.CAViewModel
+import com.oliva.chatappclone.CheckSignedIn
 import com.oliva.chatappclone.CommonProgressSpinner
 import com.oliva.chatappclone.DestinationScreen
 import com.oliva.chatappclone.R
@@ -38,6 +39,8 @@ import com.oliva.chatappclone.navigateTo
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignupScreen(navController: NavController, vm: CAViewModel) {
+    CheckSignedIn(vm = vm, navController = navController)
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -99,12 +102,12 @@ fun SignupScreen(navController: NavController, vm: CAViewModel) {
             Button(
                 onClick = {
                     focus.clearFocus(force = true)
-//                    vm.onSignup(
-//                        nameState.value.text,
-//                        numberState.value.text,
-//                        emailState.value.text,
-//                        passwordState.value.text
-//                    )
+                    vm.onSignup(
+                        nameState.value.text,
+                        numberState.value.text,
+                        emailState.value.text,
+                        passwordState.value.text
+                    )
                 },
                 modifier = Modifier.padding(8.dp)
             ) {
