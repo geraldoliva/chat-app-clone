@@ -8,16 +8,20 @@ import androidx.lifecycle.ViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.toObject
 import com.google.firebase.firestore.toObjects
 import com.google.firebase.storage.FirebaseStorage
 import com.oliva.chatappclone.data.COLLECTION_CHAT
+import com.oliva.chatappclone.data.COLLECTION_MESSAGES
 import com.oliva.chatappclone.data.COLLECTION_USER
 import com.oliva.chatappclone.data.ChatData
 import com.oliva.chatappclone.data.ChatUser
 import com.oliva.chatappclone.data.Event
+import com.oliva.chatappclone.data.Message
 import com.oliva.chatappclone.data.UserData
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.Calendar
 import java.util.UUID
 import javax.inject.Inject
 
@@ -35,6 +39,10 @@ class CAViewModel @Inject constructor(
 
     val chats = mutableStateOf<List<ChatData>>(listOf())
     val inProgressChats = mutableStateOf(false)
+
+    val chatMessages = mutableStateOf<List<Message>>(listOf())
+    val inProgressChatMessages = mutableStateOf(false)
+    var currentChatMessagesListener: ListenerRegistration? = null
 
     init {
 //        onLogout()
@@ -246,7 +254,7 @@ class CAViewModel @Inject constructor(
                                     db.collection(COLLECTION_CHAT).document(id).set(chat)
                                 }
                             }
-                            .addOnFailureListener{
+                            .addOnFailureListener {
                                 handleException(it)
                             }
                     } else {
@@ -264,12 +272,41 @@ class CAViewModel @Inject constructor(
                 Filter.equalTo("user2.userId", userData.value?.userId)
             )
         )
-            .addSnapshotListener {value, error ->
+            .addSnapshotListener { value, error ->
                 if (error != null)
                     handleException(error)
                 if (value != null)
                     chats.value = value.documents.mapNotNull { it.toObject<ChatData>() }
                 inProgressChats.value = false
             }
+    }
+
+    fun onSendReply(chatId: String, message: String) {
+        val time = Calendar.getInstance().time.toString()
+        val msg = Message(userData.value?.userId, message, time)
+        db.collection(COLLECTION_CHAT)
+            .document(chatId)
+            .collection(COLLECTION_MESSAGES)
+            .document()
+            .set(msg)
+    }
+
+    fun populateChat(chatId: String) {
+        inProgressChatMessages.value = true
+        currentChatMessagesListener = db.collection(COLLECTION_CHAT).document(chatId).collection(COLLECTION_MESSAGES)
+            .addSnapshotListener { value, error ->
+                if (error != null)
+                    handleException(error)
+                if (value != null)
+                    chatMessages.value = value.documents
+                        .mapNotNull { it.toObject<Message>() }
+                        .sortedBy { it.timestamp }
+                inProgressChatMessages.value = false
+            }
+    }
+
+    fun depopulateChat() {
+        chatMessages.value = listOf()
+        currentChatMessagesListener = null
     }
 }

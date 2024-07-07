@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -29,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.oliva.chatappclone.CAViewModel
 import com.oliva.chatappclone.CommonProgressSpinner
+import com.oliva.chatappclone.CommonRow
+import com.oliva.chatappclone.DestinationScreen
+import com.oliva.chatappclone.navigateTo
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -70,23 +75,23 @@ fun ChatListScreen(navController: NavController, vm: CAViewModel) {
                             Text(text = "No chats available")
                         }
                     else {
-//                        LazyColumn(modifier = Modifier.weight(1f)) {
-//                            items(chats) { chat ->
-//                                val chatUser = if (chat.user1.userId == userData?.userId) chat.user2
-//                                else chat.user1
-//                                CommonRow(
-//                                    imageUrl = chatUser.imageUrl ?: "",
-//                                    name = chatUser.name ?: "---"
-//                                ) {
-//                                    chat.chatId?.let {id ->
-//                                        navigateTo(
-//                                            navController,
-//                                            DestinationScreen.SingleChat.createRoute(id)
-//                                        )
-//                                    }
-//                                }
-//                            }
-//                        }
+                        LazyColumn(modifier = Modifier.weight(1f)) {
+                            items(chats) { chat ->
+                                val chatUser = if (chat.user1.userId == userData?.userId) chat.user2
+                                else chat.user1
+                                CommonRow(
+                                    imageUrl = chatUser.imageUrl ?: "",
+                                    name = chatUser.name // ?: "---"
+                                ) {
+                                    chat.chatId?.let {id ->
+                                        navigateTo(
+                                            navController,
+                                            DestinationScreen.SingleChat.createRoute(id)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     BottomNavigationMenu(
