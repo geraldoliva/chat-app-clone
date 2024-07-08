@@ -33,8 +33,8 @@ sealed class DestinationScreen(val route: String) {
         fun createRoute(id: String) = "singleChat/$id"
     }
     object StatusList : DestinationScreen("statusList")
-    object SingleStatus : DestinationScreen("singleStatus/{statusId}") {
-        fun createRoute(id: String) = "singleStatus/$id"
+    object SingleStatus : DestinationScreen("singleStatus/{userId}") {
+        fun createRoute(userId: String?) = "singleStatus/$userId"
     }
 }
 
@@ -74,10 +74,13 @@ fun ChatAppNavigation() {
             ProfileScreen(navController = navController, vm = vm)
         }
         composable(DestinationScreen.StatusList.route) {
-            StatusListScreen(navController = navController)
+            StatusListScreen(navController = navController, vm)
         }
         composable(DestinationScreen.SingleStatus.route) {
-            SingleStatusScreen(statusId = "123")
+            val userId = it.arguments?.getString("userId")
+            userId?.let {
+                SingleStatusScreen(navController = navController, vm =vm , userId = userId)
+            }
         }
         composable(DestinationScreen.ChatList.route) {
             ChatListScreen(navController = navController, vm = vm)

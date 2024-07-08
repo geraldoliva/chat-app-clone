@@ -33,6 +33,7 @@ import com.oliva.chatappclone.CAViewModel
 import com.oliva.chatappclone.CommonProgressSpinner
 import com.oliva.chatappclone.CommonRow
 import com.oliva.chatappclone.DestinationScreen
+import com.oliva.chatappclone.TitleText
 import com.oliva.chatappclone.navigateTo
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3Api::class)
@@ -62,7 +63,7 @@ fun ChatListScreen(navController: NavController, vm: CAViewModel) {
                         .fillMaxSize()
                         .padding(it)
                 ) {
-//                    TitleText(txt = "Chats")
+                    TitleText(txt = "Chats")
 
                     if (chats.isEmpty())
                         Column(

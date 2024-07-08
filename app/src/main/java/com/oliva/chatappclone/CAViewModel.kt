@@ -14,11 +14,13 @@ import com.google.firebase.firestore.toObjects
 import com.google.firebase.storage.FirebaseStorage
 import com.oliva.chatappclone.data.COLLECTION_CHAT
 import com.oliva.chatappclone.data.COLLECTION_MESSAGES
+import com.oliva.chatappclone.data.COLLECTION_STATUS
 import com.oliva.chatappclone.data.COLLECTION_USER
 import com.oliva.chatappclone.data.ChatData
 import com.oliva.chatappclone.data.ChatUser
 import com.oliva.chatappclone.data.Event
 import com.oliva.chatappclone.data.Message
+import com.oliva.chatappclone.data.Status
 import com.oliva.chatappclone.data.UserData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.Calendar
@@ -43,6 +45,9 @@ class CAViewModel @Inject constructor(
     val chatMessages = mutableStateOf<List<Message>>(listOf())
     val inProgressChatMessages = mutableStateOf(false)
     var currentChatMessagesListener: ListenerRegistration? = null
+
+    val status = mutableStateOf<List<Status>>(listOf())
+    val inProgressStatus = mutableStateOf(false)
 
     init {
 //        onLogout()
@@ -161,8 +166,8 @@ class CAViewModel @Inject constructor(
                     userData.value = user
                     inProgress.value = false
                     populateChats()
+                    populateStatuses()
                 }
-
             }
     }
 
@@ -308,5 +313,65 @@ class CAViewModel @Inject constructor(
     fun depopulateChat() {
         chatMessages.value = listOf()
         currentChatMessagesListener = null
+    }
+
+    private fun createStatus(imageUrl: String?) {
+        val newStatus = Status(
+            ChatUser(
+                userData.value?.userId,
+                userData.value?.name,
+                userData.value?.imageUrl,
+                userData.value?.number,
+            ),
+            imageUrl,
+            System.currentTimeMillis()
+        )
+        db.collection(COLLECTION_STATUS).document().set(newStatus)
+    }
+
+    fun uploadStatus(imageUri: Uri) {
+        uploadImage(imageUri) {
+            createStatus(imageUrl = it.toString())
+        }
+    }
+
+    private fun populateStatuses() {
+        inProgressStatus.value = true
+        val milliTimeDelta = 24L * 60 * 60 * 1000
+        val cutoff = System.currentTimeMillis() - milliTimeDelta
+
+        db.collection(COLLECTION_CHAT)
+            .where(
+                Filter.or(
+                    Filter.equalTo("user1.userId", userData.value?.userId),
+                    Filter.equalTo("user2.userId", userData.value?.userId)
+                )
+            )
+            .addSnapshotListener{value, error ->
+                if (error != null)
+                    handleException(error)
+                if (value != null) {
+                    val currentConnections = arrayListOf(userData.value?.userId)
+                    val chats = value.toObjects<ChatData>()
+                    chats.forEach { chat ->
+                        if (chat.user1.userId == userData.value?.userId)
+                            currentConnections.add(chat.user2.userId)
+                        else
+                            currentConnections.add(chat.user1.userId)
+                    }
+
+                    db.collection(COLLECTION_STATUS)
+                        .whereGreaterThan("timestamp", cutoff)
+                        .whereIn("user.userId", currentConnections)
+                        .addSnapshotListener{value, error ->
+                            if (error != null)
+                                handleException(error)
+                            if (value != null)
+                                status.value = value.toObjects()
+
+                            inProgressStatus.value = false
+                        }
+                }
+            }
     }
 }
